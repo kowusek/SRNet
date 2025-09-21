@@ -3,14 +3,15 @@
 # Neural Network for image Super-Resolution
 
 [![python](https://img.shields.io/badge/-Python_3.12-blue?logo=python&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![uv](https://img.shields.io/badge/Package%20Manager-uv-4B8BBE?logo=python&logoColor=white)](https://github.com/astral-sh/uv)
 [![pytorch](https://img.shields.io/badge/PyTorch_2.0+-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/get-started/locally/)
 [![lightning](https://img.shields.io/badge/-Lightning_2.0+-792ee5?logo=pytorchlightning&logoColor=white)](https://pytorchlightning.ai/)
-[![hydra](https://img.shields.io/badge/Config-Hydra_1.3-89b8cd)](https://hydra.cc/)
+[![hydra](https://img.shields.io/badge/Config-Hydra_1.3-89b8cd)](https://hydra.cc/) 
 [![black](https://img.shields.io/badge/Code%20Style-Black-black.svg?labelColor=gray)](https://black.readthedocs.io/en/stable/)
 [![isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/) <br>
 [![tests](https://github.com/kowusek/srnet/actions/workflows/test.yml/badge.svg)](https://github.com/kowusek/srnet/actions/workflows/test.yml)
 [![code-quality](https://github.com/kowusek/srnet/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/kowusek/srnet/actions/workflows/code-quality-main.yaml)
-[![codecov](https://codecov.io/gh/kowusek/srnet/branch/main/graph/badge.svg)](https://codecov.io/gh/kowusek/srnet)
+[![codecov](https://codecov.io/gh/kowusek/srnet/branch/main/graph/badge.svg)](https://codecov.io/gh/kowusek/srnet) <br>
 [![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/kowusek/srnet#license)
 
 </div>
