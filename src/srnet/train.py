@@ -6,7 +6,7 @@ from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
 
-from src.utils import (
+from srnet.utils import (
     RankedLogger,
     extras,
     get_metric_value,
@@ -85,7 +85,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     return metric_dict, object_dict
 
 
-@hydra.main(version_base="1.3", config_path="../configs", config_name="train.yaml")
+@hydra.main(version_base="1.3", config_path="../../configs", config_name="train.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
     """Main entry point for training.
 
