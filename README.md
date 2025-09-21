@@ -59,7 +59,7 @@ python src/train.py trainer.max_epochs=20 data.batch_size=64
 
 ## License
 
-Lightning-Hydra-Template is licensed under the MIT License.
+SRNet is licensed under the MIT License.
 
 ```
 MIT License
