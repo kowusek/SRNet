@@ -1,16 +1,15 @@
 import random
-from typing import Optional
+from typing import List, Optional
 
 import torch
-from torch.utils.data import Dataset
 import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 from PIL import Image
+from torch.utils.data import Dataset
 
 
 class SRDataset(Dataset):
-    """
-    Super-Resolution dataset wrapper using torch-only interpolation.
+    """Super-Resolution dataset wrapper using torch-only interpolation.
 
     Returns:
         lr: Tensor (C, H/scale, W/scale)
@@ -25,13 +24,6 @@ class SRDataset(Dataset):
         interpolation: str = "bicubic",
         training: bool = True,
     ):
-        """
-        Args:
-            base_dataset: Any dataset returning PIL image or (PIL image, target)
-            scale: SR scale factor (2, 4, 8)
-            hr_crop_size: HR crop size (divisible by scale). If None, full image.
-            training: Random crop if True, else center crop
-        """
         assert scale in (2, 4, 8), "scale must be 2, 4, or 8"
 
         if hr_crop_size is not None:
@@ -43,11 +35,38 @@ class SRDataset(Dataset):
         self.interpolation = interpolation
         self.training = training
 
+        # 🔹 Precompute valid indices
+        self.valid_indices: List[int] = self._filter_valid_images()
+
+    def _filter_valid_images(self) -> List[int]:
+        """Keep only images large enough for the required HR crop size."""
+        valid = []
+
+        for idx in range(len(self.base_dataset)):
+            item = self.base_dataset[idx]
+            img = item[0] if isinstance(item, (tuple, list)) else item
+
+            if isinstance(img, Image.Image):
+                w, h = img.size
+            elif torch.is_tensor(img):
+                _, h, w = img.shape
+            else:
+                continue
+
+            if self.hr_crop_size is None:
+                # Only need divisibility by scale
+                if h >= self.scale and w >= self.scale:
+                    valid.append(idx)
+            else:
+                if h >= self.hr_crop_size and w >= self.hr_crop_size:
+                    valid.append(idx)
+
+        return valid
+
     def __len__(self):
-        return len(self.base_dataset)
+        return len(self.valid_indices)
 
     def _extract_image(self, item):
-        """Handle datasets returning (img) or (img, label)."""
         if isinstance(item, (tuple, list)):
             img = item[0]
         else:
@@ -60,10 +79,9 @@ class SRDataset(Dataset):
         else:
             raise TypeError("Dataset must return PIL Image or Tensor")
 
-        return img  # (C, H, W) in [0,1]
+        return img  # (C, H, W)
 
     def _crop_hr(self, hr: torch.Tensor) -> torch.Tensor:
-        """Crop HR tensor."""
         _, h, w = hr.shape
 
         if self.hr_crop_size is None:
@@ -83,7 +101,6 @@ class SRDataset(Dataset):
         return hr[:, top : top + th, left : left + tw]
 
     def _downsample(self, hr: torch.Tensor) -> torch.Tensor:
-        """Torch bicubic downsampling with antialias."""
         return F.interpolate(
             hr.unsqueeze(0),
             scale_factor=1 / self.scale,
@@ -93,7 +110,9 @@ class SRDataset(Dataset):
         ).squeeze(0)
 
     def __getitem__(self, idx):
-        item = self.base_dataset[idx]
+        base_idx = self.valid_indices[idx]
+        item = self.base_dataset[base_idx]
+
         hr = self._extract_image(item)
         hr = self._crop_hr(hr)
         lr = self._downsample(hr)

@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class ConvNode(nn.Module):
     def __init__(self, input_channels, output_channels, kernel_size, padding):
-        super(ConvNode, self).__init__()
+        super().__init__()
         self.add_module(
             "conv",
             nn.Conv2d(
@@ -25,7 +25,7 @@ class ConvNode(nn.Module):
 
 class DenseBlock(nn.ModuleDict):
     def __init__(self, num_layers, channels, kernel_size, padding):
-        super(DenseBlock, self).__init__()
+        super().__init__()
         for i in range(num_layers):
             layer = ConvNode(channels * (i + 1), channels, kernel_size, padding)
             self.add_module("conv%d" % i, layer)
@@ -46,7 +46,7 @@ class DenseBlock(nn.ModuleDict):
 
 class GlobalDenseBlock(nn.ModuleDict):
     def __init__(self, num_dense_blocks, num_layers, channels, kernel_size, padding):
-        super(GlobalDenseBlock, self).__init__()
+        super().__init__()
         for i in range(num_dense_blocks):
             rdb = DenseBlock(num_layers, channels, kernel_size, padding)
             self.add_module("rdb%d" % i, rdb)
@@ -61,7 +61,7 @@ class GlobalDenseBlock(nn.ModuleDict):
         for name, layer in self.items():
             if name[:3] == "rdb":
                 features = layer(features)
-                if all_features != None:
+                if all_features is not None:
                     all_features = torch.cat([all_features, features], 1)
                 else:
                     all_features = features
@@ -79,14 +79,12 @@ class DenseNet(nn.ModuleDict):
         padding=1,
         upscale_factor=4,
     ):
-        super(DenseNet, self).__init__()
-        self.add_module("conv1", ConvNode(1, channels, kernel_size=3, padding=1))
+        super().__init__()
+        self.add_module("conv1", ConvNode(3, channels, kernel_size=3, padding=1))
         self.add_module("conv2", ConvNode(channels, channels, kernel_size=3, padding=1))
         self.add_module(
             "global_dense",
-            GlobalDenseBlock(
-                num_dense_blocks, num_layers, channels, kernel_size, padding
-            ),
+            GlobalDenseBlock(num_dense_blocks, num_layers, channels, kernel_size, padding),
         )
         self.add_module("conv3", ConvNode(channels, channels, kernel_size=3, padding=1))
         self.add_module("upscale", nn.PixelShuffle(upscale_factor))
@@ -94,7 +92,7 @@ class DenseNet(nn.ModuleDict):
             "conv4",
             ConvNode(
                 channels // upscale_factor**2,
-                1,
+                3,
                 kernel_size=1,
                 padding=0,
             ),

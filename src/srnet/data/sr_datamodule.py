@@ -1,10 +1,10 @@
+from pydoc import locate
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
 from torchvision.transforms import transforms
-from pydoc import locate
 
 from .components.sr_dataset import SRDataset
 
@@ -52,6 +52,7 @@ class SRDataModule(LightningDataModule):
         self.data_test: Optional[Dataset] = None
 
         self.batch_size_per_device = batch_size
+        self.dataset = None
 
     def find_dataset(self, name: str) -> Dataset:
         """Find dataset by name.
@@ -88,9 +89,7 @@ class SRDataModule(LightningDataModule):
                 raise RuntimeError(
                     f"Batch size ({self.hparams.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
                 )
-            self.batch_size_per_device = (
-                self.hparams.batch_size // self.trainer.world_size
-            )
+            self.batch_size_per_device = self.hparams.batch_size // self.trainer.world_size
 
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_val and not self.data_test:
@@ -102,13 +101,13 @@ class SRDataModule(LightningDataModule):
                     self.hparams.interpolation,
                     True,
                 )
-                dataset = (
+                self.dataset = (
                     ConcatDataset(datasets=[trainset])
-                    if dataset is None
-                    else ConcatDataset(datasets=[dataset, trainset])
+                    if self.dataset is None
+                    else ConcatDataset(datasets=[self.dataset, trainset])
                 )
             self.data_train, self.data_val, self.data_test = random_split(
-                dataset=dataset,
+                dataset=self.dataset,
                 lengths=self.hparams.train_val_test_split,
                 generator=torch.Generator().manual_seed(42),
             )

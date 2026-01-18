@@ -1,5 +1,5 @@
 _target_: srnet.data.sr_datamodule.SRDataModule
-datasets: 
+datasets:
   - torchvision.datasets.Imagenette
   # - torchvision.datasets.Food101
   # - torchvision.datasets.Flowers102
