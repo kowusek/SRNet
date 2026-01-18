@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 from lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
-from torchvision.datasets import ImageNet
 from torchvision.transforms import transforms
+from pydoc import locate
 
 from .components.sr_dataset import SRDataset
 
@@ -21,6 +21,7 @@ class SRDataModule(LightningDataModule):
         data_dir: str = "data/",
         scale: int = 4,
         hr_crop_size: Optional[int] = 256,
+        interpolation: str = "bicubic",
         train_val_test_split: Tuple[float, float, float] = (0.75, 0.1, 0.15),
         batch_size: int = 64,
         num_workers: int = 0,
@@ -35,7 +36,7 @@ class SRDataModule(LightningDataModule):
         :param pin_memory: Whether to pin memory. Defaults to `False`.
         """
         super().__init__()
-        self.datasets = datasets
+        self.datasets = [self.find_dataset(name) for name in datasets]
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
@@ -52,6 +53,14 @@ class SRDataModule(LightningDataModule):
 
         self.batch_size_per_device = batch_size
 
+    def find_dataset(self, name: str) -> Dataset:
+        """Find dataset by name.
+
+        :param name: The name of the dataset.
+        :return: The dataset class.
+        """
+        return locate(name)
+
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
         within a single process on CPU, so you can safely add your downloading logic within. In
@@ -61,8 +70,7 @@ class SRDataModule(LightningDataModule):
         Do not use it to assign state (self.x = y).
         """
         for dataset in self.datasets:
-            dataset(self.hparams.data_dir, True, download=True)
-            dataset(self.hparams.data_dir, False, download=True)
+            dataset(self.hparams.data_dir, download=True)
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -88,23 +96,16 @@ class SRDataModule(LightningDataModule):
         if not self.data_train and not self.data_val and not self.data_test:
             for dataset_cls in self.datasets:
                 trainset = SRDataset(
-                    dataset_cls(self.hparams.data_dir, True, transform=self.transforms),
+                    dataset_cls(self.hparams.data_dir, transform=self.transforms),
                     self.hparams.scale,
                     self.hparams.hr_crop_size,
-                    True,
-                )
-                testset = SRDataset(
-                    dataset_cls(
-                        self.hparams.data_dir, False, transform=self.transforms
-                    ),
-                    self.hparams.scale,
-                    self.hparams.hr_crop_size,
+                    self.hparams.interpolation,
                     True,
                 )
                 dataset = (
-                    ConcatDataset(datasets=[trainset, testset])
+                    ConcatDataset(datasets=[trainset])
                     if dataset is None
-                    else ConcatDataset(datasets=[dataset, trainset, testset])
+                    else ConcatDataset(datasets=[dataset, trainset])
                 )
             self.data_train, self.data_val, self.data_test = random_split(
                 dataset=dataset,

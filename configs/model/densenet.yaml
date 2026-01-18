@@ -1,4 +1,4 @@
-_target_: srnet.models.mnist_module.MNISTLitModule
+_target_: srnet.models.sr_net_module.SRNetModule
 
 optimizer:
   _target_: torch.optim.Adam
@@ -14,12 +14,13 @@ scheduler:
   patience: 10
 
 net:
-  _target_: srnet.models.components.simple_dense_net.SimpleDenseNet
-  input_size: 784
-  lin1_size: 64
-  lin2_size: 128
-  lin3_size: 64
-  output_size: 10
+  _target_: srnet.models.components.sr_dense_net.DenseNet
+  num_dense_blocks: 4
+  num_layers: 3
+  channels: 64
+  kernel_size: 3
+  padding: 1
+  upscale_factor: 4
 
 # compile model for faster training with pytorch 2.0
 compile: false

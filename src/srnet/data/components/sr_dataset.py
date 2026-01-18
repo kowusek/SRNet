@@ -22,6 +22,7 @@ class SRDataset(Dataset):
         base_dataset: Dataset,
         scale: int = 4,
         hr_crop_size: Optional[int] = 256,
+        interpolation: str = "bicubic",
         training: bool = True,
     ):
         """
@@ -39,6 +40,7 @@ class SRDataset(Dataset):
         self.base_dataset = base_dataset
         self.scale = scale
         self.hr_crop_size = hr_crop_size
+        self.interpolation = interpolation
         self.training = training
 
     def __len__(self):
@@ -85,7 +87,7 @@ class SRDataset(Dataset):
         return F.interpolate(
             hr.unsqueeze(0),
             scale_factor=1 / self.scale,
-            mode="bicubic",
+            mode=self.interpolation,
             align_corners=False,
             antialias=True,
         ).squeeze(0)

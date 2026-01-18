@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 import hydra
+import torch
 import lightning as L
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
@@ -17,6 +18,7 @@ from srnet.utils import (
 )
 
 log = RankedLogger(__name__, rank_zero_only=True)
+torch.set_float32_matmul_precision("medium")
 
 
 @task_wrapper
@@ -47,7 +49,9 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     logger: List[Logger] = instantiate_loggers(cfg.get("logger"))
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
-    trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
+    trainer: Trainer = hydra.utils.instantiate(
+        cfg.trainer, callbacks=callbacks, logger=logger
+    )
 
     object_dict = {
         "cfg": cfg,
