@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class ConvNode(nn.Module):
     def __init__(self, input_channels, output_channels, kernel_size, padding, b_norm):
-        super(ConvNode, self).__init__()
+        super().__init__()
         self.b_norm = b_norm
         self.add_module(
             "conv",
@@ -20,9 +20,7 @@ class ConvNode(nn.Module):
         if b_norm:
             self.add_module("norm", nn.BatchNorm2d(output_channels))
         else:
-            nn.init.xavier_uniform_(
-                self.conv.weight, gain=nn.init.calculate_gain("relu")
-            )
+            nn.init.xavier_uniform_(self.conv.weight, gain=nn.init.calculate_gain("relu"))
 
     def forward(self, input):
         if self.b_norm:
@@ -33,11 +31,9 @@ class ConvNode(nn.Module):
 
 class DenseBlock(nn.ModuleDict):
     def __init__(self, num_layers, channels, growth_rate, kernel_size, padding, b_norm):
-        super(DenseBlock, self).__init__()
+        super().__init__()
         for i in range(num_layers):
-            layer = ConvNode(
-                channels + growth_rate * i, growth_rate, kernel_size, padding, b_norm
-            )
+            layer = ConvNode(channels + growth_rate * i, growth_rate, kernel_size, padding, b_norm)
             self.add_module("conv%d" % i, layer)
         self.add_module(
             "last_conv",
@@ -71,11 +67,9 @@ class GlobalDenseBlock(nn.ModuleDict):
         padding,
         b_norm,
     ):
-        super(GlobalDenseBlock, self).__init__()
+        super().__init__()
         for i in range(num_dense_blocks):
-            rdb = DenseBlock(
-                num_layers, channels, growth_rate, kernel_size, padding, b_norm
-            )
+            rdb = DenseBlock(num_layers, channels, growth_rate, kernel_size, padding, b_norm)
             self.add_module("rdb%d" % i, rdb)
         self.add_module(
             "last_conv",
@@ -115,7 +109,7 @@ class DenseNet(nn.ModuleDict):
         padding=1,
         b_norm=False,
     ):
-        super(DenseNet, self).__init__()
+        super().__init__()
         self.add_module(
             "conv1",
             nn.Conv2d(input_channels, channels, kernel_size=3, padding=1, bias=False),
@@ -165,5 +159,16 @@ class DenseNet(nn.ModuleDict):
         return features
 
 
+class InterpolationNet(nn.Module):
+    def __init__(self, scale_factor, interpolation="area"):
+        super().__init__()
+        self.upscale = nn.Upsample(scale_factor=scale_factor, mode=interpolation)
+        self.add_module("conv", nn.Conv2d(3, 3, kernel_size=1, padding=0, bias=False))
+
+    def forward(self, input):
+        return self.conv(self.upscale(input))
+
+
 if __name__ == "__main__":
     _ = DenseNet()
+    _ = InterpolationNet()
