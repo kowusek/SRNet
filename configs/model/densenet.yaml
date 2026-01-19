@@ -16,12 +16,14 @@ scheduler:
 net:
   _target_: srnet.models.components.sr_dense_net.DenseNet
   input_channels: 3
-  num_dense_blocks: 4
-  num_layers: 3
-  channels: 64
+  scale_factor: 4
+  num_dense_blocks: 20
+  num_layers: 6
+  channels: 64 # needs to be divisible by scale_factor**2
+  growth_rate: 32
   kernel_size: 3
   padding: 1
-  upscale_factor: 4
+  b_norm: false
 
 # compile model for faster training with pytorch 2.0
 compile: false
