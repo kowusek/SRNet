@@ -98,7 +98,9 @@ class SRNetModule(LightningModule):
         self.val_ssim_best.reset()
         self.val_psnr_best.reset()
 
-    def model_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor]:
+    def model_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor]
+    ) -> Tuple[torch.Tensor]:
         """Perform a single model step on a batch of data.
 
         :param batch: A batch of data (a tuple) containing the input tensor of images and target labels.
@@ -129,9 +131,15 @@ class SRNetModule(LightningModule):
         self.train_loss(loss)
         self.train_ssim(preds, targets)
         self.train_psnr(preds, targets)
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train/ssim", self.train_ssim, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train/psnr", self.train_psnr, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(
+            "train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log(
+            "train/ssim", self.train_ssim, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log(
+            "train/psnr", self.train_psnr, on_step=False, on_epoch=True, prog_bar=True
+        )
 
         # return loss or backpropagation will fail
         return loss
@@ -140,7 +148,9 @@ class SRNetModule(LightningModule):
         "Lightning hook that is called when a training epoch ends."
         pass
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def validation_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> None:
         """Perform a single validation step on a batch of data from the validation set.
 
         :param batch: A batch of data (a tuple) containing the input tensor of images and target
@@ -164,13 +174,19 @@ class SRNetModule(LightningModule):
         self.val_ssim_best(ssim)  # update best so far val ssim
         # log `val_ssim_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
-        self.log("val/ssim_best", self.val_ssim_best.compute(), sync_dist=True, prog_bar=True)
+        self.log(
+            "val/ssim_best", self.val_ssim_best.compute(), sync_dist=True, prog_bar=True
+        )
         self.val_psnr_best(psnr)  # update best so far val psnr
         # log `val_psnr_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
-        self.log("val/psnr_best", self.val_psnr_best.compute(), sync_dist=True, prog_bar=True)
+        self.log(
+            "val/psnr_best", self.val_psnr_best.compute(), sync_dist=True, prog_bar=True
+        )
 
-    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def test_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> None:
         """Perform a single test step on a batch of data from the test set.
 
         :param batch: A batch of data (a tuple) containing the input tensor of images and target
@@ -183,9 +199,15 @@ class SRNetModule(LightningModule):
         self.test_loss(loss)
         self.test_ssim(preds, targets)
         self.test_psnr(preds, targets)
-        self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test/ssim", self.test_ssim, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test/psnr", self.test_psnr, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(
+            "test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log(
+            "test/ssim", self.test_ssim, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log(
+            "test/psnr", self.test_psnr, on_step=False, on_epoch=True, prog_bar=True
+        )
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""

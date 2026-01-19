@@ -15,6 +15,7 @@ scheduler:
 
 net:
   _target_: srnet.models.components.sr_dense_net.DenseNet
+  input_channels: 3
   num_dense_blocks: 4
   num_layers: 3
   channels: 64

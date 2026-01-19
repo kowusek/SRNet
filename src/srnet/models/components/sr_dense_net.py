@@ -41,7 +41,7 @@ class DenseBlock(nn.ModuleDict):
                 new_features = layer(features)
                 features = torch.cat([features, new_features], 1)
         features = self.last_conv(features)
-        return features
+        return features + input
 
 
 class GlobalDenseBlock(nn.ModuleDict):
@@ -72,6 +72,7 @@ class GlobalDenseBlock(nn.ModuleDict):
 class DenseNet(nn.ModuleDict):
     def __init__(
         self,
+        input_channels=3,
         num_dense_blocks=4,
         num_layers=3,
         channels=64,
@@ -80,11 +81,15 @@ class DenseNet(nn.ModuleDict):
         upscale_factor=4,
     ):
         super().__init__()
-        self.add_module("conv1", ConvNode(3, channels, kernel_size=3, padding=1))
+        self.add_module(
+            "conv1", ConvNode(input_channels, channels, kernel_size=3, padding=1)
+        )
         self.add_module("conv2", ConvNode(channels, channels, kernel_size=3, padding=1))
         self.add_module(
             "global_dense",
-            GlobalDenseBlock(num_dense_blocks, num_layers, channels, kernel_size, padding),
+            GlobalDenseBlock(
+                num_dense_blocks, num_layers, channels, kernel_size, padding
+            ),
         )
         self.add_module("conv3", ConvNode(channels, channels, kernel_size=3, padding=1))
         self.add_module("upscale", nn.PixelShuffle(upscale_factor))
@@ -92,7 +97,7 @@ class DenseNet(nn.ModuleDict):
             "conv4",
             ConvNode(
                 channels // upscale_factor**2,
-                3,
+                input_channels,
                 kernel_size=1,
                 padding=0,
             ),
