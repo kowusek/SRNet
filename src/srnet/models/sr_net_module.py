@@ -64,12 +64,12 @@ class SRNetModule(LightningModule):
         self.criterion = torch.nn.MSELoss()
 
         # metric objects for calculating and averaging psnr and ssim across batches
-        self.train_ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
-        self.val_ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
-        self.test_ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
-        self.train_psnr = PeakSignalNoiseRatio(data_range=1.0)
-        self.val_psnr = PeakSignalNoiseRatio(data_range=1.0)
-        self.test_psnr = PeakSignalNoiseRatio(data_range=1.0)
+        self.train_ssim = StructuralSimilarityIndexMeasure(data_range=(0.0, 1.0))
+        self.val_ssim = StructuralSimilarityIndexMeasure(data_range=(0.0, 1.0))
+        self.test_ssim = StructuralSimilarityIndexMeasure(data_range=(0.0, 1.0))
+        self.train_psnr = PeakSignalNoiseRatio(data_range=(0.0, 1.0))
+        self.val_psnr = PeakSignalNoiseRatio(data_range=(0.0, 1.0))
+        self.test_psnr = PeakSignalNoiseRatio(data_range=(0.0, 1.0))
 
         # for averaging loss across batches
         self.train_loss = MeanMetric()
@@ -112,6 +112,7 @@ class SRNetModule(LightningModule):
         """
         x, y = batch
         output = self.forward(x)
+        output = torch.clamp(output, 0.0, 1.0)
         loss = self.criterion(output, y)
         return loss, output, y
 

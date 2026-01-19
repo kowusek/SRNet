@@ -35,7 +35,6 @@ class SRDataset(Dataset):
         self.interpolation = interpolation
         self.training = training
 
-        # 🔹 Precompute valid indices
         self.valid_indices: List[int] = self._filter_valid_images()
 
     def _filter_valid_images(self) -> List[int]:
@@ -101,12 +100,16 @@ class SRDataset(Dataset):
         return hr[:, top : top + th, left : left + tw]
 
     def _downsample(self, hr: torch.Tensor) -> torch.Tensor:
-        return F.interpolate(
-            hr.unsqueeze(0),
-            scale_factor=1 / self.scale,
-            mode=self.interpolation,
-            align_corners=False,
-            antialias=True,
+        return torch.clamp(
+            F.interpolate(
+                hr.unsqueeze(0),
+                size=(hr.shape[2] // self.scale, hr.shape[1] // self.scale),
+                mode=self.interpolation,
+                align_corners=False,
+                antialias=True,
+            ),
+            0.0,
+            1.0,
         ).squeeze(0)
 
     def __getitem__(self, idx):
