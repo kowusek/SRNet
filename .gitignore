@@ -11,3 +11,7 @@ wheels/
 
 # VS Code files
 .vscode
+
+# Logs and data from template
+logs/*
+data/*

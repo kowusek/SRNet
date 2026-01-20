@@ -1,0 +1,178 @@
+from pydoc import locate
+from typing import Any, Dict, List, Optional, Tuple
+
+import torch
+from lightning import LightningDataModule
+from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
+from torchvision.transforms import transforms
+
+from .components.sr_dataset import SRDataset
+
+
+class SRDataModule(LightningDataModule):
+    """`LightningDataModule` for the Super Resolution dataset.
+
+    The Super Resolution dataset is used for training models to enhance the resolution of images.
+    """
+
+    def __init__(
+        self,
+        datasets: List[Dataset],
+        data_dir: str = "data/",
+        scale: int = 4,
+        hr_crop_size: Optional[int] = 256,
+        interpolation: str = "bicubic",
+        train_val_test_split: Tuple[float, float, float] = (0.75, 0.1, 0.15),
+        batch_size: int = 64,
+        num_workers: int = 0,
+        pin_memory: bool = False,
+    ) -> None:
+        """Initialize a `SRDataModule`.
+
+        :param data_dir: The data directory. Defaults to `"data/"`.
+        :param train_val_test_split: The train, validation and test split. Defaults to `(55_000, 5_000, 10_000)`.
+        :param batch_size: The batch size. Defaults to `64`.
+        :param num_workers: The number of workers. Defaults to `0`.
+        :param pin_memory: Whether to pin memory. Defaults to `False`.
+        """
+        super().__init__()
+        self.datasets = [self.find_dataset(name) for name in datasets]
+
+        # this line allows to access init params with 'self.hparams' attribute
+        # also ensures init params will be stored in ckpt
+        self.save_hyperparameters(logger=False)
+
+        # data transformations
+        self.transforms = transforms.Compose([])
+
+        self.data_train: Optional[Dataset] = None
+        self.data_val: Optional[Dataset] = None
+        self.data_test: Optional[Dataset] = None
+
+        self.batch_size_per_device = batch_size
+        self.dataset = None
+
+    def find_dataset(self, name: str) -> Dataset:
+        """Find dataset by name.
+
+        :param name: The name of the dataset.
+        :return: The dataset class.
+        """
+        return locate(name)
+
+    def prepare_data(self) -> None:
+        """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
+        within a single process on CPU, so you can safely add your downloading logic within. In
+        case of multi-node training, the execution of this hook depends upon
+        `self.prepare_data_per_node()`.
+
+        Do not use it to assign state (self.x = y).
+        """
+        for dataset in self.datasets:
+            dataset(self.hparams.data_dir, download=True)
+
+    def setup(self, stage: Optional[str] = None) -> None:
+        """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
+
+        This method is called by Lightning before `trainer.fit()`, `trainer.validate()`, `trainer.test()`, and
+        `trainer.predict()`, so be careful not to execute things like random split twice! Also, it is called after
+        `self.prepare_data()` and there is a barrier in between which ensures that all the processes proceed to
+        `self.setup()` once the data is prepared and available for use.
+
+        :param stage: The stage to setup. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`. Defaults to ``None``.
+        """
+        # Divide batch size by the number of devices.
+        if self.trainer is not None:
+            if self.hparams.batch_size % self.trainer.world_size != 0:
+                raise RuntimeError(
+                    f"Batch size ({self.hparams.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
+                )
+            self.batch_size_per_device = self.hparams.batch_size // self.trainer.world_size
+
+        # load and split datasets only if not loaded already
+        if not self.data_train and not self.data_val and not self.data_test:
+            for dataset_cls in self.datasets:
+                trainset = SRDataset(
+                    dataset_cls(self.hparams.data_dir, transform=self.transforms),
+                    self.hparams.scale,
+                    self.hparams.hr_crop_size,
+                    self.hparams.interpolation,
+                    True,
+                )
+                self.dataset = (
+                    ConcatDataset(datasets=[trainset])
+                    if self.dataset is None
+                    else ConcatDataset(datasets=[self.dataset, trainset])
+                )
+            self.data_train, self.data_val, self.data_test = random_split(
+                dataset=self.dataset,
+                lengths=self.hparams.train_val_test_split,
+                generator=torch.Generator().manual_seed(42),
+            )
+
+    def train_dataloader(self) -> DataLoader[Any]:
+        """Create and return the train dataloader.
+
+        :return: The train dataloader.
+        """
+        return DataLoader(
+            dataset=self.data_train,
+            batch_size=self.batch_size_per_device,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
+            shuffle=True,
+        )
+
+    def val_dataloader(self) -> DataLoader[Any]:
+        """Create and return the validation dataloader.
+
+        :return: The validation dataloader.
+        """
+        return DataLoader(
+            dataset=self.data_val,
+            batch_size=self.batch_size_per_device,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
+            shuffle=False,
+        )
+
+    def test_dataloader(self) -> DataLoader[Any]:
+        """Create and return the test dataloader.
+
+        :return: The test dataloader.
+        """
+        return DataLoader(
+            dataset=self.data_test,
+            batch_size=self.batch_size_per_device,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
+            shuffle=False,
+        )
+
+    def teardown(self, stage: Optional[str] = None) -> None:
+        """Lightning hook for cleaning up after `trainer.fit()`, `trainer.validate()`,
+        `trainer.test()`, and `trainer.predict()`.
+
+        :param stage: The stage being torn down. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`.
+            Defaults to ``None``.
+        """
+        pass
+
+    def state_dict(self) -> Dict[Any, Any]:
+        """Called when saving a checkpoint. Implement to generate and save the datamodule state.
+
+        :return: A dictionary containing the datamodule state that you want to save.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint. Implement to reload datamodule state given datamodule
+        `state_dict()`.
+
+        :param state_dict: The datamodule state returned by `self.state_dict()`.
+        """
+        pass
+
+
+if __name__ == "__main__":
+    _ = SRDataModule(["torchvision.datasets.Imagenette"], batch_size=32)

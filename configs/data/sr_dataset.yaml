@@ -1,0 +1,15 @@
+_target_: srnet.data.sr_datamodule.SRDataModule
+datasets:
+  - torchvision.datasets.Imagenette
+  - torchvision.datasets.Food101
+  - torchvision.datasets.Flowers102
+  - torchvision.datasets.FGVCAircraft
+  - torchvision.datasets.OxfordIIITPet
+data_dir: ${paths.data_dir}
+scale: 4
+hr_crop_size: 128
+batch_size: 32 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
+interpolation: bicubic
+train_val_test_split: [0.75, 0.1, 0.15]
+num_workers: 8
+pin_memory: False
