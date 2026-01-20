@@ -175,4 +175,4 @@ class SRDataModule(LightningDataModule):
 
 
 if __name__ == "__main__":
-    _ = SRDataModule()
+    _ = SRDataModule(["torchvision.datasets.Imagenette"], batch_size=32)

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 import torch
 
@@ -16,7 +14,11 @@ def test_sr_datamodule(batch_size: int) -> None:
     """
     data_dir = "data/"
 
-    dm = SRDataModule(data_dir=data_dir, batch_size=batch_size)
+    dm = SRDataModule(
+        datasets=["torchvision.datasets.Imagenette"],
+        data_dir=data_dir,
+        batch_size=batch_size,
+    )
     dm.prepare_data()
 
     assert not dm.data_train and not dm.data_val and not dm.data_test
@@ -26,11 +28,11 @@ def test_sr_datamodule(batch_size: int) -> None:
     assert dm.train_dataloader() and dm.val_dataloader() and dm.test_dataloader()
 
     num_datapoints = len(dm.data_train) + len(dm.data_val) + len(dm.data_test)
-    assert num_datapoints == 70_000
+    assert num_datapoints == 8361
 
     batch = next(iter(dm.train_dataloader()))
     x, y = batch
     assert len(x) == batch_size
     assert len(y) == batch_size
     assert x.dtype == torch.float32
-    assert y.dtype == torch.int64
+    assert y.dtype == torch.float32

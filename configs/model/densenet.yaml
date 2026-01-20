@@ -23,7 +23,7 @@ net:
   growth_rate: 32
   kernel_size: 3
   padding: 1
-  b_norm: false
+  b_norm: true
 
 # compile model for faster training with pytorch 2.0
 compile: true

@@ -171,4 +171,4 @@ class InterpolationNet(nn.Module):
 
 if __name__ == "__main__":
     _ = DenseNet()
-    _ = InterpolationNet()
+    _ = InterpolationNet(4)
